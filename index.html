@@ -34,7 +34,7 @@
                 });
 
                 const json = await resposta.json();
-
+                console.log("🔍JSON recebido do backend:", json);
                 if (json.candidates &&
                     json.candidates[0] &&
                     json.candidates[0].content &&
