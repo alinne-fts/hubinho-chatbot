@@ -9,12 +9,14 @@
   <body>
     <div class="chat-container">
       <div class="chat-header">
-        <img class="foto" src="./imagem/fotohubinho.png" />
+        <img class="foto" src="./imagem/fotohubinho.png" alt="Hubinho" />
         Hubinho
       </div>
 
       <div class="robo-mensagem" id="chat-menssagem">
-        <div class="mensagem-bot">prazer eu sou o Hubinho</div>
+        <div class="mensagem-bot">
+          Prazer, eu sou o Hubinho! Como posso te ajudar hoje?
+        </div>
       </div>
 
       <div class="chat-envia-mensagem">
@@ -24,33 +26,7 @@
     </div>
 
     <script>
-      async function enviarParaGemini(usuarioTexto) {
-        try {
-          const resposta = await fetch("/api/chat", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ message: usuarioTexto }),
-          });
-
-          const json = await resposta.json();
-          console.log("🔍JSON recebido do backend:", json);
-          if (
-            json.candidates &&
-            json.candidates[0] &&
-            json.candidates[0].content &&
-            json.candidates[0].content.parts &&
-            json.candidates[0].content.parts[0]
-          ) {
-            return json.candidates[0].content.parts[0].text;
-          } else {
-            return "Desculpe, não consegui gerar uma resposta.";
-          }
-        } catch (error) {
-          console.error("Erro ao chamar API:", error);
-          return "Erro ao conectar com a IA. Verifique seu servidor no Vercel.";
-        }
-      }
-
+      // Função que conecta com o seu backend (agora usando Groq)
       async function enviarParaGemini(usuarioTexto) {
         try {
           const resposta = await fetch("/api/chat", {
@@ -62,20 +38,67 @@
           const json = await resposta.json();
           console.log("🔍JSON recebido do backend:", json);
 
-          // Adaptação para o novo backend (Groq) que retorna { reply: "texto" }
+          // Verifica se veio a resposta no formato novo (Groq) ou se deu erro
           if (json.reply) {
             return json.reply;
           } else if (json.error) {
-            return "Erro: " + json.error;
+            return "Erro interno: " + json.error;
           } else {
-            return "Desculpe, não consegui gerar uma resposta (Formato inesperado).";
+            return "Desculpe, recebi uma resposta vazia do servidor.";
           }
         } catch (error) {
           console.error("Erro ao chamar API:", error);
-          return "Erro ao conectar com a IA. Verifique seu servidor no Vercel.";
+          return "Erro de conexão. Verifique sua internet ou o servidor.";
         }
       }
 
+      // Função que controla o chat (envia, mostra loading, recebe resposta)
+      async function sendMessage() {
+        const input = document.getElementById("entrada");
+        const chat = document.getElementById("chat-menssagem");
+        const texto = input.value.trim();
+
+        if (!texto) return;
+
+        // 1. Adiciona a mensagem do usuário na tela
+        chat.innerHTML += `   
+                <div class="user-message">${texto}</div>
+            `;
+
+        input.value = "";
+        chat.scrollTop = chat.scrollHeight;
+
+        // 2. Cria o balão de "Pensando..."
+        const loadingDiv = document.createElement("div");
+        loadingDiv.className = "mensagem-bot";
+        loadingDiv.innerHTML = "Hubinho está pensando...";
+        chat.appendChild(loadingDiv);
+        chat.scrollTop = chat.scrollHeight;
+
+        try {
+          // 3. Chama a IA e aguarda
+          const resposta = await enviarParaGemini(texto);
+
+          // 4. Remove o "Pensando..." e mostra a resposta final
+          chat.removeChild(loadingDiv);
+
+          // Converte quebras de linha em <br> para ficar bonito no HTML
+          const respostaFormatada = resposta.replace(/\n/g, "<br>");
+
+          chat.innerHTML += `
+                    <div class="mensagem-bot">${respostaFormatada}</div>
+                `;
+        } catch (error) {
+          chat.removeChild(loadingDiv);
+          chat.innerHTML += `
+                    <div class="mensagem-bot">Ocorreu um erro inesperado: ${error.message}</div>
+                `;
+        }
+
+        chat.scrollTop = chat.scrollHeight;
+      }
+
+      // Permite enviar com a tecla ENTER
       document
         .getElementById("entrada")
         .addEventListener("keypress", function (event) {
