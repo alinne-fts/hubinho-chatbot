@@ -26,7 +26,6 @@
     </div>
 
     <script>
-      // Função que conecta com o seu backend (agora usando Groq)
       async function enviarParaGemini(usuarioTexto) {
         try {
           const resposta = await fetch("/api/chat", {
@@ -38,7 +37,6 @@
           const json = await resposta.json();
           console.log("🔍JSON recebido do backend:", json);
 
-          // Verifica se veio a resposta no formato novo (Groq) ou se deu erro
           if (json.reply) {
             return json.reply;
           } else if (json.error) {
@@ -52,7 +50,6 @@
         }
       }
 
-      // Função que controla o chat (envia, mostra loading, recebe resposta)
       async function sendMessage() {
         const input = document.getElementById("entrada");
         const chat = document.getElementById("chat-menssagem");
@@ -60,7 +57,6 @@
 
         if (!texto) return;
 
-        // 1. Adiciona a mensagem do usuário na tela
         chat.innerHTML += `   
                 <div class="user-message">${texto}</div>
             `;
@@ -68,7 +64,6 @@
         input.value = "";
         chat.scrollTop = chat.scrollHeight;
 
-        // 2. Cria o balão de "Pensando..."
         const loadingDiv = document.createElement("div");
         loadingDiv.className = "mensagem-bot";
         loadingDiv.innerHTML = "Hubinho está pensando...";
@@ -76,13 +71,10 @@
         chat.scrollTop = chat.scrollHeight;
 
         try {
-          // 3. Chama a IA e aguarda
           const resposta = await enviarParaGemini(texto);
 
-          // 4. Remove o "Pensando..." e mostra a resposta final
           chat.removeChild(loadingDiv);
 
-          // Converte quebras de linha em <br> para ficar bonito no HTML
           const respostaFormatada = resposta.replace(/\n/g, "<br>");
 
           chat.innerHTML += `
@@ -98,7 +90,6 @@
         chat.scrollTop = chat.scrollHeight;
       }
 
-      // Permite enviar com a tecla ENTER
       document
         .getElementById("entrada")
         .addEventListener("keypress", function (event) {
