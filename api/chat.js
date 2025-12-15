@@ -4,6 +4,11 @@ export default async function handler(req, res) {
   }
 
   const { message } = req.body;
+  const apiKey = process.env.GROQ_API_KEY; // Certifique-se de configurar isso no Vercel
+
+  if (!apiKey) {
+    return res.status(500).json({ error: "Chave da API não configurada" });
+  }
 
   const sistema = `
 # INSTRUÇÕES PARA HUBINHO - ASSISTENTE VIRTUAL DA ALUGAHUB
@@ -70,37 +75,38 @@ As opções com o melhor custo-benefício vão aparecer para você!"
 `;
 
   try {
-    const resposta = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + process.env.CHAVE_API,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              role: "user",
-              parts: [{ text: sistema }]
-            },
-            {
-              role: "user",
-              parts: [{ text: message }]
-            }
-          ],
-          generationConfig: {
-            temperature: 0.5,
-            maxOutputTokens: 800
-          }
-        })
-      }
-    );
+    const resposta = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile", // Modelo rápido e inteligente do Groq
+        messages: [
+          { role: "system", content: sistema },
+          { role: "user", content: message }
+        ],
+        temperature: 0.5,
+        max_tokens: 800
+      })
+    });
 
     const json = await resposta.json();
-    return res.status(200).json(json);
+    
+    // Verificação de segurança caso o Groq retorne erro
+    if (json.error) {
+        console.error("Erro da API Groq:", json.error);
+        return res.status(500).json({ error: "Erro na IA: " + json.error.message });
+    }
+
+    // Retorna um formato simples para o frontend
+    return res.status(200).json({ 
+        reply: json.choices[0].message.content 
+    });
 
   } catch (err) {
-    console.error("ERRO:", err);
-    return res.status(500).json({ error: "Falha no servidor" });
+    console.error("ERRO NO SERVIDOR:", err);
+    return res.status(500).json({ error: "Falha interna no servidor" });
   }
 }

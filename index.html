@@ -1,103 +1,89 @@
 <!DOCTYPE html>
 <html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="./css/index.css">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="./css/index.css" />
     <title>Hubinho Chatbot</title>
-</head>
-<body>
+  </head>
+  <body>
     <div class="chat-container">
-        <div class="chat-header">
-            <img class="foto" src="./imagem/fotohubinho.png">
-            Hubinho
-        </div>
-    
-        <div class="robo-mensagem" id="chat-menssagem">
-            <div class="mensagem-bot">prazer eu sou o Hubinho</div>
-        </div>
-    
-        <div class="chat-envia-mensagem">
-            <input type="text" id="entrada" placeholder="Digite sua mensagem...">
-            <button onclick="sendMessage()">Enviar</button>
-        </div>
+      <div class="chat-header">
+        <img class="foto" src="./imagem/fotohubinho.png" />
+        Hubinho
+      </div>
+
+      <div class="robo-mensagem" id="chat-menssagem">
+        <div class="mensagem-bot">prazer eu sou o Hubinho</div>
+      </div>
+
+      <div class="chat-envia-mensagem">
+        <input type="text" id="entrada" placeholder="Digite sua mensagem..." />
+        <button onclick="sendMessage()">Enviar</button>
+      </div>
     </div>
 
     <script>
+      async function enviarParaGemini(usuarioTexto) {
+        try {
+          const resposta = await fetch("/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: usuarioTexto }),
+          });
 
-        async function enviarParaGemini(usuarioTexto) {
-            try {
-                const resposta = await fetch("/api/chat", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ message: usuarioTexto })
-                });
-
-                const json = await resposta.json();
-                console.log("🔍JSON recebido do backend:", json);
-                if (json.candidates &&
-                    json.candidates[0] &&
-                    json.candidates[0].content &&
-                    json.candidates[0].content.parts &&
-                    json.candidates[0].content.parts[0]) {
-                    return json.candidates[0].content.parts[0].text;
-                } else {
-                    return "Desculpe, não consegui gerar uma resposta.";
-                }
-
-            } catch (error) {
-                console.error("Erro ao chamar API:", error);
-                return "Erro ao conectar com a IA. Verifique seu servidor no Vercel.";
-            }
+          const json = await resposta.json();
+          console.log("🔍JSON recebido do backend:", json);
+          if (
+            json.candidates &&
+            json.candidates[0] &&
+            json.candidates[0].content &&
+            json.candidates[0].content.parts &&
+            json.candidates[0].content.parts[0]
+          ) {
+            return json.candidates[0].content.parts[0].text;
+          } else {
+            return "Desculpe, não consegui gerar uma resposta.";
+          }
+        } catch (error) {
+          console.error("Erro ao chamar API:", error);
+          return "Erro ao conectar com a IA. Verifique seu servidor no Vercel.";
         }
+      }
 
-        async function sendMessage() {
-            const input = document.getElementById("entrada");
-            const chat = document.getElementById("chat-menssagem");
-            const texto = input.value.trim();
+      async function enviarParaGemini(usuarioTexto) {
+        try {
+          const resposta = await fetch("/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: usuarioTexto }),
+          });
 
-            if (!texto) return;
+          const json = await resposta.json();
+          console.log("🔍JSON recebido do backend:", json);
 
-            chat.innerHTML += `   
-                <div class="user-message">${texto}</div>
-            `;
-
-            input.value = ""; 
-            chat.scrollTop = chat.scrollHeight;
-
-            const loadingDiv = document.createElement('div');
-            loadingDiv.className = 'mensagem-bot';
-            loadingDiv.innerHTML = 'Hubinho está pensando...';
-
-            chat.appendChild(loadingDiv);
-            chat.scrollTop = chat.scrollHeight;
-
-            try {
-                const resposta = await enviarParaGemini(texto);
-
-                chat.removeChild(loadingDiv);
-
-                chat.innerHTML += `
-                    <div class="mensagem-bot">${resposta}</div>
-                `;
-
-            } catch (error) {
-                chat.removeChild(loadingDiv);
-                chat.innerHTML += `
-                    <div class="mensagem-bot">Erro: ${error.message}</div>
-                `;
-            }
-
-            chat.scrollTop = chat.scrollHeight;
+          // Adaptação para o novo backend (Groq) que retorna { reply: "texto" }
+          if (json.reply) {
+            return json.reply;
+          } else if (json.error) {
+            return "Erro: " + json.error;
+          } else {
+            return "Desculpe, não consegui gerar uma resposta (Formato inesperado).";
+          }
+        } catch (error) {
+          console.error("Erro ao chamar API:", error);
+          return "Erro ao conectar com a IA. Verifique seu servidor no Vercel.";
         }
+      }
 
-        document.getElementById("entrada").addEventListener("keypress", function (event) {
-            if (event.key === "Enter") {  
-                event.preventDefault();
-                sendMessage();
-            }
+      document
+        .getElementById("entrada")
+        .addEventListener("keypress", function (event) {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            sendMessage();
+          }
         });
-
     </script>
-</body>
+  </body>
 </html>
